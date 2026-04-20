@@ -4,7 +4,7 @@ Schemas and utilities for preprocessing inputs.
 
 # SPDX-License-Identifier: Apache-2.0
 # SPDX-FileCopyrightText: Copyright contributors to the vLLM project
-from collections.abc import Sequence
+from collections.abc import Mapping, Sequence
 from typing import TYPE_CHECKING, NamedTuple, TypeAlias, TypedDict, overload
 
 from vllm.inputs import (
@@ -116,7 +116,7 @@ that has been standardized into a dictionary.
 """
 
 
-def _normalize_prompt_dict(prompt: dict[str, object]) -> dict[str, object]:
+def _normalize_prompt_dict(prompt: Mapping[str, object]) -> Mapping[str, object]:
     """Normalize dict prompts before renderer tokenization.
 
     TypedDict annotations are not enforced at runtime, so accept the common
@@ -138,9 +138,10 @@ def _normalize_prompt_dict(prompt: dict[str, object]) -> dict[str, object]:
         if not is_list_of(value, int):
             raise TypeError("Prompt text should be a string or a list of integers")
 
-        return {k: v for k, v in prompt.items() if k != "prompt"} | TokensPrompt(
-            prompt_token_ids=value
-        )
+        new_prompt = dict(prompt)
+        new_prompt.pop("prompt")
+        new_prompt["prompt_token_ids"] = value
+        return new_prompt
 
     raise TypeError("Prompt text should be a string or a list of integers")
 
