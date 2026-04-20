@@ -116,6 +116,35 @@ that has been standardized into a dictionary.
 """
 
 
+def _normalize_prompt_dict(prompt: dict[str, object]) -> dict[str, object]:
+    """Normalize dict prompts before renderer tokenization.
+
+    TypedDict annotations are not enforced at runtime, so accept the common
+    malformed shape {"prompt": [1, 2, 3]} and rewrite it into the token-based
+    form that the rest of the pipeline already supports.
+    """
+    if (
+        "prompt" not in prompt
+        or "prompt_token_ids" in prompt
+        or "prompt_embeds" in prompt
+    ):
+        return prompt
+
+    value = prompt["prompt"]
+    if isinstance(value, str):
+        return prompt
+
+    if isinstance(value, list):
+        if not is_list_of(value, int):
+            raise TypeError("Prompt text should be a string or a list of integers")
+
+        return {k: v for k, v in prompt.items() if k != "prompt"} | TokensPrompt(
+            prompt_token_ids=value
+        )
+
+    raise TypeError("Prompt text should be a string or a list of integers")
+
+
 def parse_dec_only_prompt(prompt: PromptType | object) -> DecoderOnlyDictPrompt:
     """
     Parse a prompt for a decoder-only model and normalize it to a dictionary.
@@ -132,6 +161,8 @@ def parse_dec_only_prompt(prompt: PromptType | object) -> DecoderOnlyDictPrompt:
     if isinstance(prompt, dict):
         if "encoder_prompt" in prompt:
             raise TypeError("Cannot pass encoder-decoder prompt to decoder-only models")
+
+        prompt = _normalize_prompt_dict(prompt)
 
         if (
             "prompt" in prompt
@@ -156,6 +187,8 @@ def _parse_enc_prompt(prompt: PromptType | object) -> EncoderDictPrompt:
         return TokensPrompt(prompt_token_ids=prompt)
 
     if isinstance(prompt, dict):
+        prompt = _normalize_prompt_dict(prompt)
+
         if "prompt_embeds" in prompt:
             raise TypeError("Cannot pass embeddings prompt to encoder-decoder models")
 
@@ -178,6 +211,8 @@ def _parse_dec_prompt(prompt: PromptType | object) -> DecoderDictPrompt:
         return TokensPrompt(prompt_token_ids=prompt)
 
     if isinstance(prompt, dict):
+        prompt = _normalize_prompt_dict(prompt)
+
         if "prompt_embeds" in prompt:
             raise TypeError("Cannot pass embeddings prompt to encoder-decoder models")
 
