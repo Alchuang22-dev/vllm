@@ -47,28 +47,21 @@ def test_dict_input():
     ]
 
 
-def test_parse_dec_only_prompt_normalizes_dict_prompt_token_ids():
-    prompt = parse_dec_only_prompt({"prompt": [1, 2, 3], "cache_salt": "abc"})
+def test_parse_dec_only_prompt_rejects_non_string_prompt_field():
+    with pytest.raises(TypeError, match="Prompt text should be a string"):
+        parse_dec_only_prompt({"prompt": [1, 2, 3], "cache_salt": "abc"})
 
-    assert prompt == {"prompt_token_ids": [1, 2, 3], "cache_salt": "abc"}
 
-
-def test_parse_dec_only_prompt_rejects_non_int_prompt_list():
-    with pytest.raises(
-        TypeError, match="Prompt text should be a string or a list of integers"
-    ):
+def test_parse_dec_only_prompt_rejects_non_string_prompt_list():
+    with pytest.raises(TypeError, match="Prompt text should be a string"):
         parse_dec_only_prompt({"prompt": [1, "x"]})
 
 
-def test_parse_enc_dec_prompt_normalizes_nested_prompt_token_ids():
-    prompt = parse_enc_dec_prompt(
-        {
-            "encoder_prompt": {"prompt": [1, 2, 3]},
-            "decoder_prompt": {"prompt": [4, 5]},
-        }
-    )
-
-    assert prompt == {
-        "encoder_prompt": {"prompt_token_ids": [1, 2, 3]},
-        "decoder_prompt": {"prompt_token_ids": [4, 5]},
-    }
+def test_parse_enc_dec_prompt_rejects_nested_non_string_prompt_field():
+    with pytest.raises(TypeError, match="Prompt text should be a string"):
+        parse_enc_dec_prompt(
+            {
+                "encoder_prompt": {"prompt": [1, 2, 3]},
+                "decoder_prompt": {"prompt": [4, 5]},
+            }
+        )
